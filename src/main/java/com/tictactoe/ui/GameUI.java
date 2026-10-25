@@ -89,21 +89,21 @@ public class GameUI extends JFrame implements GameEventListener {
     }
 
     private JPanel createTopSetupPanel() {
-        JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 14, 0));
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 8));
         panel.setBackground(UITheme.BG_SURFACE);
         panel.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(0, 0, 1, 0, UITheme.BORDER_LIGHT),
-                new EmptyBorder(14, 20, 14, 20)
+                new EmptyBorder(8, 12, 8, 12)
         ));
 
         // Player X input
-        JLabel xTag = new JLabel("Player X:");
+        JLabel xTag = new JLabel("X:");
         xTag.setFont(UITheme.FONT_BODY_BOLD);
         xTag.setForeground(UITheme.COLOR_X);
         playerXField = createStyledTextField("Player X");
 
         // Player O input
-        JLabel oTag = new JLabel("Player O:");
+        JLabel oTag = new JLabel("O:");
         oTag.setFont(UITheme.FONT_BODY_BOLD);
         oTag.setForeground(UITheme.COLOR_O);
         playerOField = createStyledTextField("Player O");
@@ -121,7 +121,7 @@ public class GameUI extends JFrame implements GameEventListener {
         );
         timeoutSpinner = new JSpinner(spinnerModel);
         timeoutSpinner.setFont(UITheme.FONT_INPUT);
-        timeoutSpinner.setPreferredSize(new Dimension(54, 34));
+        timeoutSpinner.setPreferredSize(new Dimension(50, 32));
         JComponent editor = timeoutSpinner.getEditor();
         if (editor instanceof JSpinner.DefaultEditor defaultEditor) {
             defaultEditor.getTextField().setFont(UITheme.FONT_INPUT);
@@ -129,8 +129,8 @@ public class GameUI extends JFrame implements GameEventListener {
             defaultEditor.getTextField().setBackground(UITheme.BG_SURFACE);
         }
 
-        JLabel secSuffix = new JLabel("sec");
-        secSuffix.setFont(UITheme.FONT_BODY);
+        JLabel secSuffix = new JLabel("s");
+        secSuffix.setFont(UITheme.FONT_BODY_BOLD);
         secSuffix.setForeground(UITheme.TEXT_MUTED);
 
         // Action buttons
@@ -142,11 +142,14 @@ public class GameUI extends JFrame implements GameEventListener {
 
         panel.add(xTag);
         panel.add(playerXField);
+        panel.add(Box.createHorizontalStrut(4));
         panel.add(oTag);
         panel.add(playerOField);
+        panel.add(Box.createHorizontalStrut(4));
         panel.add(timeoutTag);
         panel.add(timeoutSpinner);
         panel.add(secSuffix);
+        panel.add(Box.createHorizontalStrut(6));
         panel.add(startMatchBtn);
         panel.add(historyBtn);
 
@@ -154,15 +157,15 @@ public class GameUI extends JFrame implements GameEventListener {
     }
 
     private JTextField createStyledTextField(String defaultText) {
-        JTextField tf = new JTextField(defaultText, 9);
+        JTextField tf = new JTextField(defaultText, 8);
         tf.setFont(UITheme.FONT_INPUT);
         tf.setForeground(UITheme.TEXT_PRIMARY);
         tf.setBackground(UITheme.BG_SURFACE);
         tf.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(UITheme.BORDER_LIGHT, 2),
-                BorderFactory.createEmptyBorder(4, 8, 4, 8)
+                BorderFactory.createEmptyBorder(3, 6, 3, 6)
         ));
-        tf.setPreferredSize(new Dimension(110, 34));
+        tf.setPreferredSize(new Dimension(95, 32));
         return tf;
     }
 
@@ -342,12 +345,23 @@ public class GameUI extends JFrame implements GameEventListener {
     }
 
     private JPanel createBottomControlPanel() {
-        JPanel panel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 14, 12));
+        JPanel panel = new JPanel(new BorderLayout(12, 0));
         panel.setBackground(UITheme.BG_SURFACE);
         panel.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(1, 0, 0, 0, UITheme.BORDER_LIGHT),
-                new EmptyBorder(8, 24, 8, 24)
+                new EmptyBorder(10, 24, 10, 24)
         ));
+
+        // Left side: View Match History
+        JPanel leftControls = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        leftControls.setOpaque(false);
+        ModernButton bottomHistoryBtn = new ModernButton("View Match History", UITheme.COLOR_SECONDARY_BTN);
+        bottomHistoryBtn.addActionListener(e -> showHistoryDialog());
+        leftControls.add(bottomHistoryBtn);
+
+        // Right side: Round and Game Controls
+        JPanel rightControls = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
+        rightControls.setOpaque(false);
 
         newRoundBtn = new ModernButton("New Round", UITheme.COLOR_PRIMARY_BTN);
         newRoundBtn.addActionListener(e -> controller.startNewRound());
@@ -358,9 +372,12 @@ public class GameUI extends JFrame implements GameEventListener {
         ModernButton exitBtn = new ModernButton("Exit", new Color(0xDC, 0x26, 0x26));
         exitBtn.addActionListener(e -> handleExit());
 
-        panel.add(newRoundBtn);
-        panel.add(resetScoresBtn);
-        panel.add(exitBtn);
+        rightControls.add(newRoundBtn);
+        rightControls.add(resetScoresBtn);
+        rightControls.add(exitBtn);
+
+        panel.add(leftControls, BorderLayout.WEST);
+        panel.add(rightControls, BorderLayout.EAST);
 
         return panel;
     }
