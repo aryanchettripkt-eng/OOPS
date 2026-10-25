@@ -89,20 +89,12 @@ public class GameUI extends JFrame implements GameEventListener {
     }
 
     private JPanel createTopSetupPanel() {
-        JPanel panel = new JPanel(new BorderLayout(16, 0));
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 14, 0));
         panel.setBackground(UITheme.BG_SURFACE);
         panel.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(0, 0, 1, 0, UITheme.BORDER_LIGHT),
-                new EmptyBorder(14, 24, 14, 24)
+                new EmptyBorder(14, 20, 14, 20)
         ));
-
-        // App Title
-        JLabel appTitle = new JLabel("TIC-TAC-TOE : TIMED");
-        appTitle.setFont(UITheme.FONT_APP_TITLE);
-        appTitle.setForeground(UITheme.TEXT_PRIMARY);
-
-        JPanel controls = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
-        controls.setOpaque(false);
 
         // Player X input
         JLabel xTag = new JLabel("Player X:");
@@ -148,18 +140,16 @@ public class GameUI extends JFrame implements GameEventListener {
         historyBtn = new ModernButton("Match History", UITheme.COLOR_SECONDARY_BTN);
         historyBtn.addActionListener(e -> showHistoryDialog());
 
-        controls.add(xTag);
-        controls.add(playerXField);
-        controls.add(oTag);
-        controls.add(playerOField);
-        controls.add(timeoutTag);
-        controls.add(timeoutSpinner);
-        controls.add(secSuffix);
-        controls.add(startMatchBtn);
-        controls.add(historyBtn);
+        panel.add(xTag);
+        panel.add(playerXField);
+        panel.add(oTag);
+        panel.add(playerOField);
+        panel.add(timeoutTag);
+        panel.add(timeoutSpinner);
+        panel.add(secSuffix);
+        panel.add(startMatchBtn);
+        panel.add(historyBtn);
 
-        panel.add(appTitle, BorderLayout.WEST);
-        panel.add(controls, BorderLayout.EAST);
         return panel;
     }
 
