@@ -13,23 +13,24 @@ import java.awt.event.WindowEvent;
 /**
  * Main graphical interface for the Multithreaded Tic-Tac-Toe desktop application.
  *
- * Implements GameEventListener to receive state updates from GameController.
- * Enforces that all Swing GUI updates are marshalled onto the Event Dispatch Thread (EDT)
- * using SwingUtilities.invokeLater.
+ * Implements a modern, high-contrast visual design system ensuring complete,
+ * effortless readability of all text, buttons, timers, and game boards on any display.
+ *
+ * All state updates are marshalled onto the Swing Event Dispatch Thread (EDT).
  */
 public class GameUI extends JFrame implements GameEventListener {
 
     private final GameController controller;
 
     // Board cell buttons
-    private final JButton[][] cellButtons = new JButton[Board.SIZE][Board.SIZE];
+    private final CellButton[][] cellButtons = new CellButton[Board.SIZE][Board.SIZE];
 
     // Setup input fields
     private JTextField playerXField;
     private JTextField playerOField;
     private JSpinner timeoutSpinner;
-    private JButton startMatchBtn;
-    private JButton historyBtn;
+    private ModernButton startMatchBtn;
+    private ModernButton historyBtn;
 
     // Status & Timer components
     private JLabel currentPlayerLabel;
@@ -44,8 +45,8 @@ public class GameUI extends JFrame implements GameEventListener {
     private JLabel totalRoundsLabel;
 
     // Control buttons
-    private JButton newRoundBtn;
-    private JButton resetScoresBtn;
+    private ModernButton newRoundBtn;
+    private ModernButton resetScoresBtn;
 
     public GameUI(GameController controller) {
         super("Multithreaded Tic-Tac-Toe: A Two-Player Timed Game");
@@ -68,10 +69,10 @@ public class GameUI extends JFrame implements GameEventListener {
     }
 
     private void initializeUI() {
-        setSize(850, 750);
-        setMinimumSize(new Dimension(720, 680));
+        setSize(920, 780);
+        setMinimumSize(new Dimension(840, 720));
         setLocationRelativeTo(null);
-        getContentPane().setBackground(UITheme.BG_DARK);
+        getContentPane().setBackground(UITheme.BG_CANVAS);
         setLayout(new BorderLayout(0, 0));
 
         // 1. Top Setup Bar
@@ -88,35 +89,38 @@ public class GameUI extends JFrame implements GameEventListener {
     }
 
     private JPanel createTopSetupPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
+        JPanel panel = new JPanel(new BorderLayout(16, 0));
         panel.setBackground(UITheme.BG_SURFACE);
-        panel.setBorder(new EmptyBorder(12, 20, 12, 20));
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, UITheme.BORDER_LIGHT),
+                new EmptyBorder(14, 24, 14, 24)
+        ));
 
-        JLabel appTitle = new JLabel("TIC-TAC-TOE : TIMED MULTITHREADED");
-        appTitle.setFont(UITheme.FONT_TITLE);
+        // App Title
+        JLabel appTitle = new JLabel("TIC-TAC-TOE : TIMED");
+        appTitle.setFont(UITheme.FONT_APP_TITLE);
         appTitle.setForeground(UITheme.TEXT_PRIMARY);
 
-        JPanel controls = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        JPanel controls = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
         controls.setOpaque(false);
 
         // Player X input
-        JLabel xTag = new JLabel("X:");
-        xTag.setFont(UITheme.FONT_BOLD);
+        JLabel xTag = new JLabel("Player X:");
+        xTag.setFont(UITheme.FONT_BODY_BOLD);
         xTag.setForeground(UITheme.COLOR_X);
-        playerXField = new JTextField("Player X", 8);
-        playerXField.setFont(UITheme.FONT_REGULAR);
+        playerXField = createStyledTextField("Player X");
 
         // Player O input
-        JLabel oTag = new JLabel("O:");
-        oTag.setFont(UITheme.FONT_BOLD);
+        JLabel oTag = new JLabel("Player O:");
+        oTag.setFont(UITheme.FONT_BODY_BOLD);
         oTag.setForeground(UITheme.COLOR_O);
-        playerOField = new JTextField("Player O", 8);
-        playerOField.setFont(UITheme.FONT_REGULAR);
+        playerOField = createStyledTextField("Player O");
 
         // Timeout spinner
-        JLabel timeoutTag = new JLabel("Timer(s):");
-        timeoutTag.setFont(UITheme.FONT_BOLD);
+        JLabel timeoutTag = new JLabel("Timer:");
+        timeoutTag.setFont(UITheme.FONT_BODY_BOLD);
         timeoutTag.setForeground(UITheme.TEXT_SECONDARY);
+
         SpinnerNumberModel spinnerModel = new SpinnerNumberModel(
                 GameController.DEFAULT_TIMEOUT_SECONDS,
                 GameController.MIN_TIMEOUT_SECONDS,
@@ -124,14 +128,24 @@ public class GameUI extends JFrame implements GameEventListener {
                 1
         );
         timeoutSpinner = new JSpinner(spinnerModel);
-        timeoutSpinner.setFont(UITheme.FONT_REGULAR);
-        ((JSpinner.DefaultEditor) timeoutSpinner.getEditor()).getTextField().setColumns(3);
+        timeoutSpinner.setFont(UITheme.FONT_INPUT);
+        timeoutSpinner.setPreferredSize(new Dimension(54, 34));
+        JComponent editor = timeoutSpinner.getEditor();
+        if (editor instanceof JSpinner.DefaultEditor defaultEditor) {
+            defaultEditor.getTextField().setFont(UITheme.FONT_INPUT);
+            defaultEditor.getTextField().setForeground(UITheme.TEXT_PRIMARY);
+            defaultEditor.getTextField().setBackground(UITheme.BG_SURFACE);
+        }
+
+        JLabel secSuffix = new JLabel("sec");
+        secSuffix.setFont(UITheme.FONT_BODY);
+        secSuffix.setForeground(UITheme.TEXT_MUTED);
 
         // Action buttons
-        startMatchBtn = createButton("Start Match", UITheme.COLOR_ACCENT, Color.WHITE);
+        startMatchBtn = new ModernButton("Start Match", UITheme.COLOR_PRIMARY_BTN);
         startMatchBtn.addActionListener(e -> handleStartMatch());
 
-        historyBtn = createButton("Match History", UITheme.BG_CARD, UITheme.TEXT_PRIMARY);
+        historyBtn = new ModernButton("Match History", UITheme.COLOR_SECONDARY_BTN);
         historyBtn.addActionListener(e -> showHistoryDialog());
 
         controls.add(xTag);
@@ -140,6 +154,7 @@ public class GameUI extends JFrame implements GameEventListener {
         controls.add(playerOField);
         controls.add(timeoutTag);
         controls.add(timeoutSpinner);
+        controls.add(secSuffix);
         controls.add(startMatchBtn);
         controls.add(historyBtn);
 
@@ -148,68 +163,74 @@ public class GameUI extends JFrame implements GameEventListener {
         return panel;
     }
 
+    private JTextField createStyledTextField(String defaultText) {
+        JTextField tf = new JTextField(defaultText, 9);
+        tf.setFont(UITheme.FONT_INPUT);
+        tf.setForeground(UITheme.TEXT_PRIMARY);
+        tf.setBackground(UITheme.BG_SURFACE);
+        tf.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(UITheme.BORDER_LIGHT, 2),
+                BorderFactory.createEmptyBorder(4, 8, 4, 8)
+        ));
+        tf.setPreferredSize(new Dimension(110, 34));
+        return tf;
+    }
+
     private JPanel createCenterPanel() {
-        JPanel centerContainer = new JPanel(new BorderLayout(10, 10));
-        centerContainer.setBackground(UITheme.BG_DARK);
+        JPanel centerContainer = new JPanel(new BorderLayout(12, 12));
+        centerContainer.setBackground(UITheme.BG_CANVAS);
         centerContainer.setBorder(new EmptyBorder(16, 24, 16, 16));
 
-        // Status & Countdown Banner
-        JPanel bannerPanel = new JPanel(new BorderLayout(10, 8));
-        bannerPanel.setBackground(UITheme.BG_SURFACE);
-        bannerPanel.setBorder(new EmptyBorder(12, 16, 12, 16));
+        // 1. Status & Countdown Card
+        JPanel bannerCard = new JPanel(new BorderLayout(12, 10));
+        bannerCard.setBackground(UITheme.BG_SURFACE);
+        bannerCard.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(UITheme.BORDER_LIGHT, 1),
+                new EmptyBorder(14, 20, 14, 20)
+        ));
 
-        currentPlayerLabel = new JLabel("Configure players above and click Start Match");
-        currentPlayerLabel.setFont(UITheme.FONT_HEADER);
+        currentPlayerLabel = new JLabel("Ready! Click 'Start Match' to begin.");
+        currentPlayerLabel.setFont(UITheme.FONT_SECTION);
         currentPlayerLabel.setForeground(UITheme.TEXT_PRIMARY);
 
-        JPanel timerBadge = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
-        timerBadge.setOpaque(false);
+        JPanel timerPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        timerPanel.setOpaque(false);
 
-        JLabel timerIcon = new JLabel("Time:");
-        timerIcon.setFont(UITheme.FONT_REGULAR);
-        timerIcon.setForeground(UITheme.TEXT_SECONDARY);
+        JLabel timerPrefix = new JLabel("Turn Timer:");
+        timerPrefix.setFont(UITheme.FONT_BODY_BOLD);
+        timerPrefix.setForeground(UITheme.TEXT_SECONDARY);
 
-        timerLabel = new JLabel("--s");
+        timerLabel = new JLabel(GameController.DEFAULT_TIMEOUT_SECONDS + "s");
         timerLabel.setFont(UITheme.FONT_TIMER);
         timerLabel.setForeground(UITheme.COLOR_WIN);
 
-        timerBadge.add(timerIcon);
-        timerBadge.add(timerLabel);
+        timerPanel.add(timerPrefix);
+        timerPanel.add(timerLabel);
 
-        bannerPanel.add(currentPlayerLabel, BorderLayout.WEST);
-        bannerPanel.add(timerBadge, BorderLayout.EAST);
+        bannerCard.add(currentPlayerLabel, BorderLayout.WEST);
+        bannerCard.add(timerPanel, BorderLayout.EAST);
 
-        // Timer progress bar
+        // Timer Progress Bar
         timerProgressBar = new JProgressBar(0, GameController.DEFAULT_TIMEOUT_SECONDS);
         timerProgressBar.setValue(GameController.DEFAULT_TIMEOUT_SECONDS);
         timerProgressBar.setForeground(UITheme.COLOR_WIN);
-        timerProgressBar.setBackground(UITheme.BG_CARD);
+        timerProgressBar.setBackground(new Color(0xE2, 0xE8, 0xF0));
         timerProgressBar.setBorderPainted(false);
-        timerProgressBar.setPreferredSize(new Dimension(100, 4));
-        bannerPanel.add(timerProgressBar, BorderLayout.SOUTH);
+        timerProgressBar.setPreferredSize(new Dimension(100, 8));
+        bannerCard.add(timerProgressBar, BorderLayout.SOUTH);
 
-        centerContainer.add(bannerPanel, BorderLayout.NORTH);
+        centerContainer.add(bannerCard, BorderLayout.NORTH);
 
-        // 3x3 Grid Board Panel
-        JPanel boardPanel = new JPanel(new GridLayout(Board.SIZE, Board.SIZE, 8, 8));
-        boardPanel.setBackground(UITheme.BG_DARK);
+        // 2. 3x3 Grid Board Panel
+        JPanel boardPanel = new JPanel(new GridLayout(Board.SIZE, Board.SIZE, 10, 10));
+        boardPanel.setBackground(UITheme.BG_CANVAS);
 
         for (int row = 0; row < Board.SIZE; row++) {
             for (int col = 0; col < Board.SIZE; col++) {
                 final int r = row;
                 final int c = col;
-                JButton cell = new JButton("");
-                cell.setFont(UITheme.FONT_BOARD_CELL);
-                cell.setFocusPainted(false);
-                cell.setBackground(UITheme.BG_CELL);
-                cell.setForeground(UITheme.TEXT_PRIMARY);
-                cell.setBorder(BorderFactory.createLineBorder(UITheme.BG_CARD, 2));
-                cell.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-
-                cell.addActionListener(e -> {
-                    // Send move to authoritative controller
-                    controller.handleMove(r, c);
-                });
+                CellButton cell = new CellButton();
+                cell.addActionListener(e -> controller.handleMove(r, c));
 
                 cellButtons[row][col] = cell;
                 boardPanel.add(cell);
@@ -218,106 +239,133 @@ public class GameUI extends JFrame implements GameEventListener {
 
         centerContainer.add(boardPanel, BorderLayout.CENTER);
 
-        // Status message strip
-        statusBannerLabel = new JLabel("Welcome! Ready to play.");
-        statusBannerLabel.setFont(UITheme.FONT_REGULAR);
+        // 3. Status message strip at the bottom
+        JPanel statusStrip = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
+        statusStrip.setBackground(UITheme.BG_SURFACE);
+        statusStrip.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(UITheme.BORDER_LIGHT, 1),
+                new EmptyBorder(6, 14, 6, 14)
+        ));
+
+        statusBannerLabel = new JLabel("Configure names & click Start Match.");
+        statusBannerLabel.setFont(UITheme.FONT_BODY_BOLD);
         statusBannerLabel.setForeground(UITheme.TEXT_SECONDARY);
-        statusBannerLabel.setBorder(new EmptyBorder(6, 4, 4, 4));
-        centerContainer.add(statusBannerLabel, BorderLayout.SOUTH);
+        statusStrip.add(statusBannerLabel);
+
+        centerContainer.add(statusStrip, BorderLayout.SOUTH);
 
         return centerContainer;
     }
 
     private JPanel createSidePanel() {
         JPanel sidePanel = new JPanel(new BorderLayout());
-        sidePanel.setBackground(UITheme.BG_DARK);
-        sidePanel.setPreferredSize(new Dimension(220, 0));
-        sidePanel.setBorder(new EmptyBorder(16, 0, 16, 20));
+        sidePanel.setBackground(UITheme.BG_CANVAS);
+        sidePanel.setPreferredSize(new Dimension(240, 0));
+        sidePanel.setBorder(new EmptyBorder(16, 0, 16, 24));
 
         JPanel card = new JPanel();
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
         card.setBackground(UITheme.BG_SURFACE);
-        card.setBorder(new EmptyBorder(16, 16, 16, 16));
+        card.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(UITheme.BORDER_LIGHT, 1),
+                new EmptyBorder(18, 16, 18, 16)
+        ));
 
         JLabel title = new JLabel("SCOREBOARD");
-        title.setFont(UITheme.FONT_HEADER);
+        title.setFont(UITheme.FONT_SECTION);
         title.setForeground(UITheme.TEXT_PRIMARY);
         title.setAlignmentX(Component.CENTER_ALIGNMENT);
         card.add(title);
         card.add(Box.createVerticalStrut(16));
 
-        xWinsLabel = createStatItem(card, "Player X Wins", "0", UITheme.COLOR_X);
-        card.add(Box.createVerticalStrut(12));
-        oWinsLabel = createStatItem(card, "Player O Wins", "0", UITheme.COLOR_O);
-        card.add(Box.createVerticalStrut(12));
-        drawsLabel = createStatItem(card, "Draws", "0", UITheme.TEXT_SECONDARY);
-        card.add(Box.createVerticalStrut(12));
-        totalRoundsLabel = createStatItem(card, "Total Rounds", "0", UITheme.COLOR_WIN);
+        // Stat tiles
+        xWinsLabel = createStatTile(card, "Player X Wins", "0", UITheme.COLOR_X, UITheme.CELL_BG_X, UITheme.CELL_BORDER_X);
+        card.add(Box.createVerticalStrut(10));
+        oWinsLabel = createStatTile(card, "Player O Wins", "0", UITheme.COLOR_O, UITheme.CELL_BG_O, UITheme.CELL_BORDER_O);
+        card.add(Box.createVerticalStrut(10));
+        drawsLabel = createStatTile(card, "Draws", "0", UITheme.TEXT_SECONDARY, UITheme.BG_CARD, UITheme.BORDER_LIGHT);
+        card.add(Box.createVerticalStrut(10));
+        totalRoundsLabel = createStatTile(card, "Total Rounds", "0", UITheme.COLOR_WIN, UITheme.CELL_BG_WIN, UITheme.CELL_BORDER_WIN);
 
         card.add(Box.createVerticalGlue());
 
-        // Quick tips box
-        JPanel tipsBox = new JPanel();
-        tipsBox.setLayout(new BoxLayout(tipsBox, BoxLayout.Y_AXIS));
-        tipsBox.setBackground(UITheme.BG_CARD);
-        tipsBox.setBorder(new EmptyBorder(10, 10, 10, 10));
+        // Quick Rules Box
+        JPanel rulesBox = new JPanel();
+        rulesBox.setLayout(new BoxLayout(rulesBox, BoxLayout.Y_AXIS));
+        rulesBox.setBackground(UITheme.BG_CARD);
+        rulesBox.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(UITheme.BORDER_LIGHT, 1),
+                new EmptyBorder(10, 12, 10, 12)
+        ));
 
-        JLabel tipsTitle = new JLabel("Game Rules:");
-        tipsTitle.setFont(UITheme.FONT_BOLD);
-        tipsTitle.setForeground(UITheme.TEXT_PRIMARY);
-        tipsBox.add(tipsTitle);
-        tipsBox.add(Box.createVerticalStrut(6));
+        JLabel rulesTitle = new JLabel("Turn Rules:");
+        rulesTitle.setFont(UITheme.FONT_BODY_BOLD);
+        rulesTitle.setForeground(UITheme.TEXT_PRIMARY);
+        rulesBox.add(rulesTitle);
+        rulesBox.add(Box.createVerticalStrut(6));
 
-        JLabel rule1 = new JLabel("• X always moves first");
-        rule1.setFont(UITheme.FONT_REGULAR);
-        rule1.setForeground(UITheme.TEXT_SECONDARY);
-        tipsBox.add(rule1);
+        addRuleBullet(rulesBox, "• Player X moves first");
+        addRuleBullet(rulesBox, "• Countdown resets each turn");
+        addRuleBullet(rulesBox, "• Timeout = opponent wins!");
 
-        JLabel rule2 = new JLabel("• Beat the turn timer");
-        rule2.setFont(UITheme.FONT_REGULAR);
-        rule2.setForeground(UITheme.TEXT_SECONDARY);
-        tipsBox.add(rule2);
-
-        JLabel rule3 = new JLabel("• Timeout = forfeit round");
-        rule3.setFont(UITheme.FONT_REGULAR);
-        rule3.setForeground(UITheme.TEXT_SECONDARY);
-        tipsBox.add(rule3);
-
-        card.add(tipsBox);
+        card.add(rulesBox);
 
         sidePanel.add(card, BorderLayout.CENTER);
         return sidePanel;
     }
 
-    private JLabel createStatItem(JPanel container, String title, String value, Color color) {
-        JLabel tLbl = new JLabel(title);
-        tLbl.setFont(UITheme.FONT_REGULAR);
-        tLbl.setForeground(UITheme.TEXT_SECONDARY);
-        tLbl.setAlignmentX(Component.CENTER_ALIGNMENT);
+    private void addRuleBullet(JPanel container, String text) {
+        JLabel lbl = new JLabel(text);
+        lbl.setFont(UITheme.FONT_BODY);
+        lbl.setForeground(UITheme.TEXT_SECONDARY);
+        container.add(lbl);
+        container.add(Box.createVerticalStrut(3));
+    }
 
-        JLabel vLbl = new JLabel(value);
-        vLbl.setFont(UITheme.FONT_SCORE);
-        vLbl.setForeground(color);
-        vLbl.setAlignmentX(Component.CENTER_ALIGNMENT);
+    private JLabel createStatTile(JPanel container, String title, String value, Color textColor, Color bgColor, Color borderColor) {
+        JPanel tile = new JPanel();
+        tile.setLayout(new BoxLayout(tile, BoxLayout.Y_AXIS));
+        tile.setBackground(bgColor);
+        tile.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(borderColor, 1),
+                new EmptyBorder(8, 12, 8, 12)
+        ));
+        tile.setMaximumSize(new Dimension(210, 68));
+        tile.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        container.add(tLbl);
-        container.add(Box.createVerticalStrut(2));
-        container.add(vLbl);
-        return vLbl;
+        JLabel titleLbl = new JLabel(title);
+        titleLbl.setFont(UITheme.FONT_SCORE_LABEL);
+        titleLbl.setForeground(UITheme.TEXT_SECONDARY);
+        titleLbl.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        JLabel valLbl = new JLabel(value);
+        valLbl.setFont(UITheme.FONT_SCORE_VALUE);
+        valLbl.setForeground(textColor);
+        valLbl.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        tile.add(titleLbl);
+        tile.add(Box.createVerticalStrut(2));
+        tile.add(valLbl);
+
+        container.add(tile);
+        return valLbl;
     }
 
     private JPanel createBottomControlPanel() {
-        JPanel panel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 10));
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 14, 12));
         panel.setBackground(UITheme.BG_SURFACE);
-        panel.setBorder(new EmptyBorder(6, 20, 6, 20));
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(1, 0, 0, 0, UITheme.BORDER_LIGHT),
+                new EmptyBorder(8, 24, 8, 24)
+        ));
 
-        newRoundBtn = createButton("New Round", UITheme.COLOR_ACCENT, Color.WHITE);
+        newRoundBtn = new ModernButton("New Round", UITheme.COLOR_PRIMARY_BTN);
         newRoundBtn.addActionListener(e -> controller.startNewRound());
 
-        resetScoresBtn = createButton("Reset Scores", UITheme.BG_CARD, UITheme.TEXT_PRIMARY);
+        resetScoresBtn = new ModernButton("Reset Scores", UITheme.COLOR_SECONDARY_BTN);
         resetScoresBtn.addActionListener(e -> handleResetScores());
 
-        JButton exitBtn = createButton("Exit", new Color(0x7F, 0x1D, 0x1D), Color.WHITE);
+        ModernButton exitBtn = new ModernButton("Exit", new Color(0xDC, 0x26, 0x26));
         exitBtn.addActionListener(e -> handleExit());
 
         panel.add(newRoundBtn);
@@ -325,20 +373,6 @@ public class GameUI extends JFrame implements GameEventListener {
         panel.add(exitBtn);
 
         return panel;
-    }
-
-    private JButton createButton(String text, Color bg, Color fg) {
-        JButton btn = new JButton(text);
-        btn.setFont(UITheme.FONT_BOLD);
-        btn.setBackground(bg);
-        btn.setForeground(fg);
-        btn.setFocusPainted(false);
-        btn.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(bg.darker(), 1),
-                BorderFactory.createEmptyBorder(7, 14, 7, 14)
-        ));
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        return btn;
     }
 
     private void handleStartMatch() {
@@ -360,7 +394,7 @@ public class GameUI extends JFrame implements GameEventListener {
     private void handleResetScores() {
         int confirm = JOptionPane.showConfirmDialog(
                 this,
-                "Reset scoreboard to 0-0?\n(Current session scores will be cleared, persistent history remains intact)",
+                "Reset scoreboard tallies back to 0-0?\n(Current session scores will be cleared; persistent CSV history remains saved.)",
                 "Confirm Reset Scores",
                 JOptionPane.YES_NO_OPTION,
                 JOptionPane.QUESTION_MESSAGE
@@ -398,10 +432,9 @@ public class GameUI extends JFrame implements GameEventListener {
     public void onGameStateChanged(GameState newState) {
         SwingUtilities.invokeLater(() -> {
             boolean isPlaying = (newState == GameState.PLAYING);
-            // Enable or disable board buttons based on active play
             for (int r = 0; r < Board.SIZE; r++) {
                 for (int c = 0; c < Board.SIZE; c++) {
-                    cellButtons[r][c].setEnabled(isPlaying || !cellButtons[r][c].getText().isEmpty());
+                    cellButtons[r][c].setEnabled(isPlaying || cellButtons[r][c].getSymbol() != PlayerSymbol.EMPTY);
                 }
             }
         });
@@ -419,9 +452,7 @@ public class GameUI extends JFrame implements GameEventListener {
     @Override
     public void onMoveMade(int row, int col, PlayerSymbol symbol) {
         SwingUtilities.invokeLater(() -> {
-            JButton cell = cellButtons[row][col];
-            cell.setText(String.valueOf(symbol.getChar()));
-            cell.setForeground((symbol == PlayerSymbol.X) ? UITheme.COLOR_X : UITheme.COLOR_O);
+            cellButtons[row][col].setSymbol(symbol);
         });
     }
 
@@ -450,23 +481,21 @@ public class GameUI extends JFrame implements GameEventListener {
             timerLabel.setText("0s");
             timerProgressBar.setValue(0);
 
-            // Highlight winning line cells if present
+            // Highlight winning line cells
             if (winningLine != null) {
                 for (int[] coord : winningLine) {
-                    JButton cell = cellButtons[coord[0]][coord[1]];
-                    cell.setBackground(UITheme.COLOR_WIN_BG);
-                    cell.setBorder(BorderFactory.createLineBorder(UITheme.COLOR_WIN, 3));
+                    cellButtons[coord[0]][coord[1]].setWinningCell(true);
                 }
             }
 
             String message;
             if (finalState == GameState.DRAW) {
-                message = "Round ended in a DRAW!";
+                message = "Round finished in a DRAW!";
                 currentPlayerLabel.setText(message);
                 currentPlayerLabel.setForeground(UITheme.TEXT_SECONDARY);
             } else {
-                String winDesc = (reason == CompletionReason.TIMEOUT) ? " [TIMEOUT FORFEIT]" : "";
-                message = String.format("VICTORY! %s (%s) WON THE ROUND!%s",
+                String winDesc = (reason == CompletionReason.TIMEOUT) ? " [TIMEOUT FORFEIT]" : " [VICTORY]";
+                message = String.format("%s (%s) WON THE ROUND!%s",
                         winner.getName(), winner.getSymbol(), winDesc);
                 currentPlayerLabel.setText(message);
                 currentPlayerLabel.setForeground(UITheme.COLOR_WIN);
@@ -481,11 +510,7 @@ public class GameUI extends JFrame implements GameEventListener {
         SwingUtilities.invokeLater(() -> {
             for (int r = 0; r < Board.SIZE; r++) {
                 for (int c = 0; c < Board.SIZE; c++) {
-                    JButton cell = cellButtons[r][c];
-                    cell.setText("");
-                    cell.setBackground(UITheme.BG_CELL);
-                    cell.setBorder(BorderFactory.createLineBorder(UITheme.BG_CARD, 2));
-                    cell.setEnabled(true);
+                    cellButtons[r][c].reset();
                 }
             }
             timerLabel.setText(controller.getTurnTimeoutSeconds() + "s");

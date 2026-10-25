@@ -4,3 +4,4 @@ Timestamp,PlayerX,PlayerO,Winner,WinnerSymbol,Reason,DurationSeconds
 2026-10-25 14:25:44,Charlie,Diana,Draw,EMPTY,DRAW,35
 2026-10-25 14:32:01,Charlie,Diana,Diana,O,NORMAL_WIN,22
 2026-10-25 14:40:19,Vikram,Ananya,Vikram,X,NORMAL_WIN,15
+2026-10-25 16:21:42,Player X,Player O,Player X,X,NORMAL_WIN,8

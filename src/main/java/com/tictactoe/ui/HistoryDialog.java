@@ -14,7 +14,7 @@ import java.util.List;
 
 /**
  * Modal dialog displaying persistent match records loaded from CSV.
- * Features a modern JTable, refresh capability, and history clearing.
+ * Features a high-contrast JTable, refresh capability, and history clearing.
  */
 public class HistoryDialog extends JDialog {
 
@@ -24,26 +24,29 @@ public class HistoryDialog extends JDialog {
     private final JLabel statusLabel;
 
     public HistoryDialog(Frame parent, MatchHistory matchHistory) {
-        super(parent, "Match History", true);
+        super(parent, "Match History Records", true);
         this.matchHistory = matchHistory;
 
-        setSize(780, 480);
+        setSize(820, 500);
         setLocationRelativeTo(parent);
-        getContentPane().setBackground(UITheme.BG_DARK);
+        getContentPane().setBackground(UITheme.BG_CANVAS);
         setLayout(new BorderLayout(10, 10));
 
         // Header
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setBackground(UITheme.BG_SURFACE);
-        headerPanel.setBorder(new EmptyBorder(16, 20, 16, 20));
+        headerPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, UITheme.BORDER_LIGHT),
+                new EmptyBorder(16, 24, 16, 24)
+        ));
 
         JLabel titleLabel = new JLabel("Completed Match History");
-        titleLabel.setFont(UITheme.FONT_TITLE);
+        titleLabel.setFont(UITheme.FONT_APP_TITLE);
         titleLabel.setForeground(UITheme.TEXT_PRIMARY);
         headerPanel.add(titleLabel, BorderLayout.WEST);
 
-        statusLabel = new JLabel("Records loaded from local CSV");
-        statusLabel.setFont(UITheme.FONT_REGULAR);
+        statusLabel = new JLabel("Loaded from data/match_history.csv");
+        statusLabel.setFont(UITheme.FONT_BODY_BOLD);
         statusLabel.setForeground(UITheme.TEXT_SECONDARY);
         headerPanel.add(statusLabel, BorderLayout.EAST);
 
@@ -54,57 +57,71 @@ public class HistoryDialog extends JDialog {
         tableModel = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false; // Read-only table
+                return false;
             }
         };
 
         table = new JTable(tableModel);
-        table.setFont(UITheme.FONT_REGULAR);
-        table.setRowHeight(32);
+        table.setFont(UITheme.FONT_BODY);
+        table.setRowHeight(34);
         table.setBackground(UITheme.BG_SURFACE);
         table.setForeground(UITheme.TEXT_PRIMARY);
-        table.setGridColor(UITheme.BG_CARD);
-        table.setSelectionBackground(UITheme.COLOR_ACCENT);
-        table.setSelectionForeground(Color.WHITE);
+        table.setGridColor(UITheme.BORDER_LIGHT);
+        table.setSelectionBackground(new Color(0xEE, 0xF2, 0xFF));
+        table.setSelectionForeground(UITheme.TEXT_PRIMARY);
         table.setShowGrid(true);
 
         // Header styling
         JTableHeader header = table.getTableHeader();
-        header.setFont(UITheme.FONT_HEADER);
+        header.setFont(UITheme.FONT_BODY_BOLD);
         header.setBackground(UITheme.BG_CARD);
         header.setForeground(UITheme.TEXT_PRIMARY);
-        header.setPreferredSize(new Dimension(100, 36));
+        header.setPreferredSize(new Dimension(100, 38));
 
-        // Center align text
-        DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
-        centerRenderer.setHorizontalAlignment(JLabel.CENTER);
+        // Center align text with alternate row shading
+        DefaultTableCellRenderer cellRenderer = new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable t, Object val, boolean isSel, boolean hasFocus, int row, int col) {
+                Component c = super.getTableCellRendererComponent(t, val, isSel, hasFocus, row, col);
+                setHorizontalAlignment(JLabel.CENTER);
+                if (!isSel) {
+                    c.setBackground(row % 2 == 0 ? UITheme.BG_SURFACE : UITheme.BG_CARD);
+                    c.setForeground(UITheme.TEXT_PRIMARY);
+                }
+                return c;
+            }
+        };
+
         for (int i = 0; i < table.getColumnCount(); i++) {
-            table.getColumnModel().getColumn(i).setCellRenderer(centerRenderer);
+            table.getColumnModel().getColumn(i).setCellRenderer(cellRenderer);
         }
 
         JScrollPane scrollPane = new JScrollPane(table);
         scrollPane.getViewport().setBackground(UITheme.BG_SURFACE);
-        scrollPane.setBorder(BorderFactory.createLineBorder(UITheme.BG_CARD));
+        scrollPane.setBorder(BorderFactory.createLineBorder(UITheme.BORDER_LIGHT, 1));
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
 
         JPanel centerPanel = new JPanel(new BorderLayout());
-        centerPanel.setBackground(UITheme.BG_DARK);
-        centerPanel.setBorder(new EmptyBorder(10, 20, 10, 20));
+        centerPanel.setBackground(UITheme.BG_CANVAS);
+        centerPanel.setBorder(new EmptyBorder(12, 24, 12, 24));
         centerPanel.add(scrollPane, BorderLayout.CENTER);
         add(centerPanel, BorderLayout.CENTER);
 
         // Bottom action buttons
-        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 12));
-        bottomPanel.setBackground(UITheme.BG_DARK);
-        bottomPanel.setBorder(new EmptyBorder(5, 20, 12, 20));
+        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 14, 12));
+        bottomPanel.setBackground(UITheme.BG_SURFACE);
+        bottomPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(1, 0, 0, 0, UITheme.BORDER_LIGHT),
+                new EmptyBorder(10, 24, 12, 24)
+        ));
 
-        JButton refreshBtn = createStyledButton("Refresh", UITheme.BG_CARD, UITheme.TEXT_PRIMARY);
+        ModernButton refreshBtn = new ModernButton("Refresh", UITheme.COLOR_SECONDARY_BTN);
         refreshBtn.addActionListener(e -> loadData());
 
-        JButton clearBtn = createStyledButton("Clear History", new Color(0x99, 0x1B, 0x1B), Color.WHITE);
+        ModernButton clearBtn = new ModernButton("Clear History", new Color(0xDC, 0x26, 0x26));
         clearBtn.addActionListener(e -> handleClearHistory());
 
-        JButton closeBtn = createStyledButton("Close", UITheme.COLOR_ACCENT, Color.WHITE);
+        ModernButton closeBtn = new ModernButton("Close", UITheme.COLOR_PRIMARY_BTN);
         closeBtn.addActionListener(e -> dispose());
 
         bottomPanel.add(refreshBtn);
@@ -128,7 +145,6 @@ public class HistoryDialog extends JDialog {
                 statusLabel.setText("No match records found.");
             } else {
                 statusLabel.setText(records.size() + " matches recorded.");
-                // Show newest records first
                 for (int i = records.size() - 1; i >= 0; i--) {
                     MatchRecord r = records.get(i);
                     tableModel.addRow(new Object[]{
@@ -173,19 +189,5 @@ public class HistoryDialog extends JDialog {
                         "Error", JOptionPane.ERROR_MESSAGE);
             }
         }
-    }
-
-    private JButton createStyledButton(String text, Color bg, Color fg) {
-        JButton btn = new JButton(text);
-        btn.setFont(UITheme.FONT_BOLD);
-        btn.setBackground(bg);
-        btn.setForeground(fg);
-        btn.setFocusPainted(false);
-        btn.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(bg.darker(), 1),
-                BorderFactory.createEmptyBorder(8, 16, 8, 16)
-        ));
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        return btn;
     }
 }
