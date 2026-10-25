@@ -86,26 +86,41 @@ multithreaded-tictactoe/
 
 ---
 
-## 5. Build and Execution Instructions
+## 5. Quick Start (Clone & Play)
 
-### Option A: Run via Maven Wrapper
+Anyone who clones this repository can immediately run the game using any of the following methods:
 
-To compile and launch the desktop application directly:
+### Method 1: Instant 1-Click Launch (No Maven Required)
+Only a standard **JDK 17+** is needed:
+- **Windows**: Double-click `run.bat` or run:
+  ```powershell
+  .\run.bat
+  ```
+- **macOS / Linux**: Run:
+  ```bash
+  chmod +x run.sh && ./run.sh
+  ```
+
+### Method 2: Cross-Platform Maven Wrapper (Auto-installs Maven if missing)
+- **Windows**:
+  ```powershell
+  .\mvnw.cmd exec:java
+  ```
+- **macOS / Linux**:
+  ```bash
+  ./mvnw exec:java
+  ```
+
+### Method 3: Standard Maven (If Maven is already installed)
 ```powershell
-.\mvn.cmd exec:java
+mvn exec:java
 ```
-*(On Linux/macOS: `./mvn exec:java` or `mvn exec:java`)*
 
-### Option B: Build Executable JAR and Run
-
-1. Clean and package the application:
-   ```powershell
-   .\mvn.cmd clean package
-   ```
-2. Run the generated JAR:
-   ```powershell
-   java -jar target/multithreaded-tictactoe-1.0.0.jar
-   ```
+### Method 4: Packaged JAR
+```powershell
+.\mvnw.cmd clean package
+java -jar target/multithreaded-tictactoe-1.0.0.jar
+```
 
 ---
 

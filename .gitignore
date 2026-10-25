@@ -1,4 +1,6 @@
 target/
+bin/
+sources.txt
 *.class
 *.log
 .idea/
