@@ -26,6 +26,7 @@ public class GameUI extends JFrame implements GameEventListener {
     private final CellButton[][] cellButtons = new CellButton[Board.SIZE][Board.SIZE];
 
     // Setup input fields
+    private JComboBox<String> modeCombo;
     private JTextField playerXField;
     private JTextField playerOField;
     private JSpinner timeoutSpinner;
@@ -66,11 +67,14 @@ public class GameUI extends JFrame implements GameEventListener {
 
         // Sync initial state
         updateScoreboardDisplay(controller.getScoreboard());
+
+        // Immediately start match ready to play!
+        controller.startNewMatch("Player X", "Computer (AI)", GameController.DEFAULT_TIMEOUT_SECONDS, true);
     }
 
     private void initializeUI() {
-        setSize(920, 780);
-        setMinimumSize(new Dimension(840, 720));
+        setSize(960, 780);
+        setMinimumSize(new Dimension(880, 720));
         setLocationRelativeTo(null);
         getContentPane().setBackground(UITheme.BG_CANVAS);
         setLayout(new BorderLayout(0, 0));
@@ -89,12 +93,35 @@ public class GameUI extends JFrame implements GameEventListener {
     }
 
     private JPanel createTopSetupPanel() {
-        JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 8));
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 8));
         panel.setBackground(UITheme.BG_SURFACE);
         panel.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(0, 0, 1, 0, UITheme.BORDER_LIGHT),
-                new EmptyBorder(8, 12, 8, 12)
+                new EmptyBorder(8, 10, 8, 10)
         ));
+
+        // Game mode selector
+        JLabel modeTag = new JLabel("Mode:");
+        modeTag.setFont(UITheme.FONT_BODY_BOLD);
+        modeTag.setForeground(UITheme.TEXT_SECONDARY);
+
+        modeCombo = new JComboBox<>(new String[]{"vs Computer (AI)", "2 Players (Local)"});
+        modeCombo.setFont(UITheme.FONT_INPUT);
+        modeCombo.setBackground(UITheme.BG_SURFACE);
+        modeCombo.setForeground(UITheme.TEXT_PRIMARY);
+        modeCombo.setPreferredSize(new Dimension(145, 32));
+        modeCombo.addActionListener(e -> {
+            boolean vsAI = (modeCombo.getSelectedIndex() == 0);
+            if (vsAI) {
+                playerOField.setText("Computer (AI)");
+                playerOField.setEnabled(false);
+            } else {
+                if ("Computer (AI)".equals(playerOField.getText())) {
+                    playerOField.setText("Player O");
+                }
+                playerOField.setEnabled(true);
+            }
+        });
 
         // Player X input
         JLabel xTag = new JLabel("X:");
@@ -106,7 +133,8 @@ public class GameUI extends JFrame implements GameEventListener {
         JLabel oTag = new JLabel("O:");
         oTag.setFont(UITheme.FONT_BODY_BOLD);
         oTag.setForeground(UITheme.COLOR_O);
-        playerOField = createStyledTextField("Player O");
+        playerOField = createStyledTextField("Computer (AI)");
+        playerOField.setEnabled(false);
 
         // Timeout spinner
         JLabel timeoutTag = new JLabel("Timer:");
@@ -140,6 +168,9 @@ public class GameUI extends JFrame implements GameEventListener {
         historyBtn = new ModernButton("Match History", UITheme.COLOR_SECONDARY_BTN);
         historyBtn.addActionListener(e -> showHistoryDialog());
 
+        panel.add(modeTag);
+        panel.add(modeCombo);
+        panel.add(Box.createHorizontalStrut(6));
         panel.add(xTag);
         panel.add(playerXField);
         panel.add(Box.createHorizontalStrut(4));
@@ -223,7 +254,7 @@ public class GameUI extends JFrame implements GameEventListener {
                 final int r = row;
                 final int c = col;
                 CellButton cell = new CellButton();
-                cell.addActionListener(e -> controller.handleMove(r, c));
+                cell.addActionListener(e -> handleCellClick(r, c));
 
                 cellButtons[row][col] = cell;
                 boardPanel.add(cell);
@@ -382,6 +413,24 @@ public class GameUI extends JFrame implements GameEventListener {
         return panel;
     }
 
+    private void handleCellClick(int row, int col) {
+        // If it is currently the AI's turn during active play, ignore human clicks
+        if (controller.getCurrentPlayer() instanceof AIPlayer && controller.getGameState() == GameState.PLAYING && !controller.isRoundCompleted()) {
+            return;
+        }
+
+        // If the game has ended or is not active, start a new round or match immediately
+        if (controller.getGameState() != GameState.PLAYING || controller.isRoundCompleted()) {
+            boolean vsAI = (modeCombo.getSelectedIndex() == 0);
+            String x = playerXField.getText().trim();
+            String o = playerOField.getText().trim();
+            int timeout = (Integer) timeoutSpinner.getValue();
+            controller.startNewMatch(x, o, timeout, vsAI);
+        }
+
+        controller.handleMove(row, col);
+    }
+
     private void handleStartMatch() {
         String x = playerXField.getText().trim();
         String o = playerOField.getText().trim();
@@ -394,8 +443,9 @@ public class GameUI extends JFrame implements GameEventListener {
             return;
         }
 
+        boolean vsAI = (modeCombo.getSelectedIndex() == 0);
         timerProgressBar.setMaximum(timeout);
-        controller.startNewMatch(x, o, timeout);
+        controller.startNewMatch(x, o, timeout, vsAI);
     }
 
     private void handleResetScores() {
@@ -438,10 +488,9 @@ public class GameUI extends JFrame implements GameEventListener {
     @Override
     public void onGameStateChanged(GameState newState) {
         SwingUtilities.invokeLater(() -> {
-            boolean isPlaying = (newState == GameState.PLAYING);
             for (int r = 0; r < Board.SIZE; r++) {
                 for (int c = 0; c < Board.SIZE; c++) {
-                    cellButtons[r][c].setEnabled(isPlaying || cellButtons[r][c].getSymbol() != PlayerSymbol.EMPTY);
+                    cellButtons[r][c].setEnabled(true);
                 }
             }
         });
@@ -508,7 +557,7 @@ public class GameUI extends JFrame implements GameEventListener {
                 currentPlayerLabel.setForeground(UITheme.COLOR_WIN);
             }
 
-            statusBannerLabel.setText(message + " Click 'New Round' to play again.");
+            statusBannerLabel.setText(message + " Click any cell or 'New Round' to play again.");
         });
     }
 

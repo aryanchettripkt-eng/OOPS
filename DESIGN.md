@@ -58,6 +58,7 @@ The application follows a clean, layered Object-Oriented Architecture with stric
 | `com.tictactoe.model` | `Board` | Encapsulates the 3×3 game grid (`PlayerSymbol[][]`), validates moves, detects wins across rows/columns/diagonals, computes winning lines, and checks draws. |
 | `com.tictactoe.model` | `Player` | Abstract base class storing player name and assigned symbol. Defines abstract contract `getPlayerType()`. |
 | `com.tictactoe.model` | `HumanPlayer` | Concrete subclass of `Player` representing a human participant. Overrides `getPlayerType()`. |
+| `com.tictactoe.model` | `AIPlayer` | Concrete subclass of `Player` representing an intelligent computer opponent. Overrides `getPlayerType()`, calculates winning/blocking/center/corner heuristic moves, and runs asynchronously. |
 | `com.tictactoe.model` | `PlayerSymbol` | Enum representing marks: `X('X')`, `O('O')`, and `EMPTY(' ')` with opponent alternation logic. |
 | `com.tictactoe.model` | `GameState` | Enum capturing game lifecycle states: `READY`, `PLAYING`, `X_WON`, `O_WON`, `DRAW`, `CLOSED`. |
 | `com.tictactoe.model` | `CompletionReason` | Enum describing round completion mode: `NORMAL_WIN`, `DRAW`, or `TIMEOUT`. |

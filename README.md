@@ -15,6 +15,8 @@ The system is architected using a layered Model-View-Controller (MVC) design whe
 ## 2. Key Features
 
 - **Standard 3×3 Grid Game Logic**: Complete row, column, and diagonal win detection; draw detection upon full board occupancy.
+- **Single-Player vs Computer (AI) & Two-Player Pass & Play**: Play against an intelligent computer AI opponent running on background daemon threads, or face off against a friend locally.
+- **Instant 1-Click Interactive Play**: Click any cell immediately to start playing; board clicks automatically initialize the match and restart new rounds without confusing lockouts.
 - **Dynamic Turn Timer**: Dedicated background countdown worker with real-time remaining-seconds display, color-coded urgency indicators, and an animated progress bar.
 - **Race Condition Prevention**: Synchronized monitor locks ensure atomic resolution between player clicks and sub-millisecond turn timeouts.
 - **Generation Token Invalidation**: Monotonically increasing generation tokens prevent stale timer callbacks from affecting subsequent turns or rounds.
@@ -59,6 +61,7 @@ multithreaded-tictactoe/
     │   │   ├── Board.java                  # 3x3 grid model & win algorithms
     │   │   ├── Player.java                 # Abstract base class
     │   │   ├── HumanPlayer.java            # Concrete Player subclass
+    │   │   ├── AIPlayer.java               # Concrete AI Player subclass with heuristic logic
     │   │   ├── PlayerSymbol.java           # X, O, EMPTY enum with opponent logic
     │   │   ├── GameState.java              # Lifecycle state enum
     │   │   ├── CompletionReason.java       # NORMAL_WIN, DRAW, TIMEOUT enum
@@ -78,6 +81,7 @@ multithreaded-tictactoe/
     │       └── UITheme.java                # Design tokens & color palette
     └── test/java/com/tictactoe/
         ├── model/BoardTest.java            # Board model & win/draw unit tests (13 tests)
+        ├── model/AIPlayerTest.java         # AI move logic & concurrency integration tests (5 tests)
         ├── controller/GameControllerTest.java # Controller & turn lifecycle tests (9 tests)
         ├── persistence/MatchHistoryTest.java # CSV read/write/escaping tests (6 tests)
         ├── concurrency/ConcurrencyTest.java # Race condition & multithreading tests (4 tests)

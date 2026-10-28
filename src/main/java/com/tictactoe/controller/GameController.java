@@ -10,6 +10,9 @@ import com.tictactoe.timer.TurnTimer;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Authoritative controller coordinating the game lifecycle, turn sequencing,
@@ -32,6 +35,7 @@ public class GameController implements TimerListener {
     private final Board board;
     private final Scoreboard scoreboard;
     private final TurnTimer turnTimer;
+    private final ScheduledExecutorService aiExecutor;
     private final MatchHistory matchHistory;
     private final List<GameEventListener> listeners;
 
@@ -66,6 +70,11 @@ public class GameController implements TimerListener {
         this.board = (board != null) ? board : new Board();
         this.scoreboard = (scoreboard != null) ? scoreboard : new Scoreboard();
         this.turnTimer = (turnTimer != null) ? turnTimer : new TurnTimer(this);
+        this.aiExecutor = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread thread = new Thread(r, "AI-Worker-Thread");
+            thread.setDaemon(true);
+            return thread;
+        });
         this.matchHistory = matchHistory;
         this.listeners = new CopyOnWriteArrayList<>();
 
@@ -89,22 +98,36 @@ public class GameController implements TimerListener {
 
     /**
      * Starts a new game session with custom player names and turn timeout.
+     * Defaults to human vs human match.
      *
      * @param nameX          Player X's name
      * @param nameO          Player O's name
      * @param timeoutSeconds turn timeout in seconds
      */
     public void startNewMatch(String nameX, String nameO, int timeoutSeconds) {
+        startNewMatch(nameX, nameO, timeoutSeconds, false);
+    }
+
+    /**
+     * Overloaded method to start a new game session specifying whether Player O is an AI opponent.
+     * Demonstrates method overloading and polymorphism.
+     *
+     * @param nameX          Player X's name
+     * @param nameO          Player O's name
+     * @param timeoutSeconds turn timeout in seconds
+     * @param vsAI           true if Player O should be an AI player
+     */
+    public void startNewMatch(String nameX, String nameO, int timeoutSeconds, boolean vsAI) {
         synchronized (stateLock) {
             String sanitizedX = (nameX == null || nameX.isBlank()) ? "Player X" : nameX.trim();
-            String sanitizedO = (nameO == null || nameO.isBlank()) ? "Player O" : nameO.trim();
+            String sanitizedO = (nameO == null || nameO.isBlank()) ? (vsAI ? "Computer (AI)" : "Player O") : nameO.trim();
 
             if (timeoutSeconds < MIN_TIMEOUT_SECONDS || timeoutSeconds > MAX_TIMEOUT_SECONDS) {
                 timeoutSeconds = DEFAULT_TIMEOUT_SECONDS;
             }
 
             this.playerX = new HumanPlayer(sanitizedX, PlayerSymbol.X);
-            this.playerO = new HumanPlayer(sanitizedO, PlayerSymbol.O);
+            this.playerO = vsAI ? new AIPlayer(sanitizedO, PlayerSymbol.O) : new HumanPlayer(sanitizedO, PlayerSymbol.O);
             this.turnTimeoutSeconds = timeoutSeconds;
 
             scoreboard.reset();
@@ -141,6 +164,9 @@ public class GameController implements TimerListener {
 
             // Start timer for Player X
             turnTimer.start(currentTurnToken, turnTimeoutSeconds);
+
+            // If Player X is AI, trigger AI move
+            triggerAIMoveIfApplicable(currentTurnToken);
         }
     }
 
@@ -155,6 +181,11 @@ public class GameController implements TimerListener {
      */
     public boolean handleMove(int row, int col) {
         synchronized (stateLock) {
+            if (gameState == GameState.READY) {
+                // Auto-start round on move so board is immediately interactive
+                startNewRound();
+            }
+
             if (gameState != GameState.PLAYING || roundCompleted) {
                 notifyError("Move rejected: Game is not in active PLAYING state.");
                 return false;
@@ -198,7 +229,33 @@ public class GameController implements TimerListener {
 
             // Start fresh timer for next player
             turnTimer.start(currentTurnToken, turnTimeoutSeconds);
+
+            // Trigger AI move if next player is AI
+            triggerAIMoveIfApplicable(currentTurnToken);
             return true;
+        }
+    }
+
+    /**
+     * Schedules an asynchronous AI move if the current active player is an AIPlayer.
+     * Uses stateLock and generation tokens to guarantee race-free coordination.
+     *
+     * @param turnToken active generation token
+     */
+    private void triggerAIMoveIfApplicable(final long turnToken) {
+        if (currentPlayer instanceof AIPlayer aiPlayer) {
+            notifyStatusMessage(String.format("%s is thinking...", aiPlayer.getName()));
+            aiExecutor.schedule(() -> {
+                synchronized (stateLock) {
+                    if (turnToken != currentTurnToken || gameState != GameState.PLAYING || roundCompleted) {
+                        return;
+                    }
+                    int[] bestMove = aiPlayer.calculateMove(board);
+                    if (bestMove != null) {
+                        handleMove(bestMove[0], bestMove[1]);
+                    }
+                }
+            }, 450, TimeUnit.MILLISECONDS);
         }
     }
 
@@ -292,13 +349,25 @@ public class GameController implements TimerListener {
     }
 
     /**
-     * Shuts down background timer threads and cleans up resources.
+     * Shuts down background timer threads, AI worker threads, and cleans up resources.
      */
     public void shutdown() {
         synchronized (stateLock) {
             gameState = GameState.CLOSED;
             turnTimer.shutdown();
+            aiExecutor.shutdownNow();
             notifyGameStateChanged();
+        }
+    }
+
+    /**
+     * Checks if current match is configured against an AI opponent.
+     *
+     * @return true if Player O or Player X is an AIPlayer
+     */
+    public boolean isVsAI() {
+        synchronized (stateLock) {
+            return (playerX instanceof AIPlayer) || (playerO instanceof AIPlayer);
         }
     }
 

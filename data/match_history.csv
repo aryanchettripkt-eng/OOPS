@@ -9,3 +9,4 @@ Timestamp,PlayerX,PlayerO,Winner,WinnerSymbol,Reason,DurationSeconds
 2026-10-25 16:26:09,Player X,Player O,Player X,X,NORMAL_WIN,7
 2026-10-25 16:26:21,Player X,Player O,Player O,O,TIMEOUT,10
 2026-10-25 16:26:33,Player X,Player O,Player O,O,TIMEOUT,10
+2026-10-28 11:03:25,Player X,Computer (AI),Player X,X,NORMAL_WIN,10
