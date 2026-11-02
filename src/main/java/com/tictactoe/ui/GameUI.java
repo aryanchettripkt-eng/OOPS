@@ -414,18 +414,24 @@ public class GameUI extends JFrame implements GameEventListener {
     }
 
     private void handleCellClick(int row, int col) {
-        // If it is currently the AI's turn during active play, ignore human clicks
-        if (controller.getCurrentPlayer() instanceof AIPlayer && controller.getGameState() == GameState.PLAYING && !controller.isRoundCompleted()) {
-            return;
-        }
+        boolean vsAI = (modeCombo.getSelectedIndex() == 0);
 
-        // If the game has ended or is not active, start a new round or match immediately
-        if (controller.getGameState() != GameState.PLAYING || controller.isRoundCompleted()) {
-            boolean vsAI = (modeCombo.getSelectedIndex() == 0);
+        // The selected mode may differ from the running match (e.g. the initial
+        // vs-AI match is still PLAYING after the user switched to 2 Players).
+        // In that case, start a match with the selected mode before handling the move.
+        boolean modeMismatch = controller.isVsAI() != vsAI;
+
+        // If the game has ended, is not active, or the mode changed, start a new match first
+        if (modeMismatch || controller.getGameState() != GameState.PLAYING || controller.isRoundCompleted()) {
             String x = playerXField.getText().trim();
             String o = playerOField.getText().trim();
             int timeout = (Integer) timeoutSpinner.getValue();
             controller.startNewMatch(x, o, timeout, vsAI);
+        }
+
+        // If it is currently the AI's turn during active play, ignore human clicks
+        if (controller.getCurrentPlayer() instanceof AIPlayer && controller.getGameState() == GameState.PLAYING && !controller.isRoundCompleted()) {
+            return;
         }
 
         controller.handleMove(row, col);
