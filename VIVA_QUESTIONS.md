@@ -89,10 +89,13 @@ This document provides 25 likely viva and oral exam questions along with concise
 **Answer**: `AtomicInteger` uses hardware-level Compare-And-Swap (CAS) instructions to provide thread-safe, atomic increments (`incrementAndGet()`) without the overhead of heavy locks.
 
 #### Q20: How do you prevent deadlocks in this multithreaded application?
-**Answer**: Deadlocks occur when threads hold locks and wait for each other in a cyclic dependency. We prevent deadlocks by:
-1. Maintaining a single monitor lock (`stateLock`) in `GameController` (no nested lock acquisition).
-2. Releasing locks before firing long-running callbacks.
-3. Keeping the Swing EDT free of blocking calls (`await()`, `join()`, `sleep()`).
+**Answer**: Deadlocks occur when threads hold locks and wait for each other in a cyclic dependency. We prevent them with one fixed lock order and by never calling out while holding a lock:
+1. Game state is guarded by `stateLock` in `GameController`. Move handling starts and stops the turn timer while holding it, so the only nested acquisition is `stateLock` → `TurnTimer` monitor.
+2. `TurnTimer` never calls its listener while holding its own monitor. Its tick task updates state under the monitor, releases it, and only then calls `onTick`/`onTimeout`. So the reverse order (timer → `stateLock`) never happens and the lock graph has no cycle.
+3. Callbacks are checked against generation tokens, so a timeout that arrives after a move is ignored.
+4. Keeping the Swing EDT free of blocking calls (`await()`, `join()`, `sleep()`).
+
+`TurnTimerTest` checks rule 2: the timeout callback runs without the timer monitor held, and it can call `stop()` safely.
 
 ---
 

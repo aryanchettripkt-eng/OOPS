@@ -17,16 +17,16 @@ import java.util.List;
  * - Resilient error handling for missing files, corrupt records, and I/O failures
  */
 public class MatchHistory implements MatchStore {
-    public static final String DEFAULT_FILE_PATH = "data/match_history.csv";
+    public static final String DEFAULT_FILE_NAME = "match_history.csv";
     public static final String CSV_HEADER = "Timestamp,PlayerX,PlayerO,Winner,WinnerSymbol,Reason,DurationSeconds";
 
     private final Path filePath;
 
     /**
-     * Default constructor using standard relative file path "data/match_history.csv".
+     * Default constructor using {@code match_history.csv} in the project's data folder.
      */
     public MatchHistory() {
-        this(Paths.get(DEFAULT_FILE_PATH));
+        this(AppPaths.dataFile(DEFAULT_FILE_NAME));
     }
 
     /**
@@ -36,7 +36,7 @@ public class MatchHistory implements MatchStore {
      * @param filePath custom path to CSV file
      */
     public MatchHistory(Path filePath) {
-        this.filePath = (filePath != null) ? filePath : Paths.get(DEFAULT_FILE_PATH);
+        this.filePath = (filePath != null) ? filePath : AppPaths.dataFile(DEFAULT_FILE_NAME);
     }
 
     public Path getFilePath() {

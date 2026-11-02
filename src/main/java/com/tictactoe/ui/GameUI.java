@@ -31,7 +31,6 @@ public class GameUI extends JFrame implements GameEventListener {
     private JTextField playerOField;
     private JSpinner timeoutSpinner;
     private ModernButton startMatchBtn;
-    private ModernButton historyBtn;
 
     // Status & Timer components
     private JLabel currentPlayerLabel;
@@ -68,8 +67,7 @@ public class GameUI extends JFrame implements GameEventListener {
         // Sync initial state
         updateScoreboardDisplay(controller.getScoreboard());
 
-        // Immediately start match ready to play!
-        controller.startNewMatch("Player X", "Computer (AI)", GameController.DEFAULT_TIMEOUT_SECONDS, true);
+        // No match starts here. The board stays disabled until the user presses Start Match.
     }
 
     private void initializeUI() {
@@ -165,9 +163,6 @@ public class GameUI extends JFrame implements GameEventListener {
         startMatchBtn = new ModernButton("Start Match", UITheme.COLOR_PRIMARY_BTN);
         startMatchBtn.addActionListener(e -> handleStartMatch());
 
-        historyBtn = new ModernButton("Match History", UITheme.COLOR_SECONDARY_BTN);
-        historyBtn.addActionListener(e -> showHistoryDialog());
-
         panel.add(modeTag);
         panel.add(modeCombo);
         panel.add(Box.createHorizontalStrut(6));
@@ -182,7 +177,6 @@ public class GameUI extends JFrame implements GameEventListener {
         panel.add(secSuffix);
         panel.add(Box.createHorizontalStrut(6));
         panel.add(startMatchBtn);
-        panel.add(historyBtn);
 
         return panel;
     }
@@ -254,6 +248,7 @@ public class GameUI extends JFrame implements GameEventListener {
                 final int r = row;
                 final int c = col;
                 CellButton cell = new CellButton();
+                cell.setEnabled(false); // Enabled by Start Match (see onGameStateChanged)
                 cell.addActionListener(e -> handleCellClick(r, c));
 
                 cellButtons[row][col] = cell;
@@ -284,7 +279,7 @@ public class GameUI extends JFrame implements GameEventListener {
     private JPanel createSidePanel() {
         JPanel sidePanel = new JPanel(new BorderLayout());
         sidePanel.setBackground(UITheme.BG_CANVAS);
-        sidePanel.setPreferredSize(new Dimension(240, 0));
+        sidePanel.setPreferredSize(new Dimension(270, 0)); // wide enough for the scoreboard title and rule text
         sidePanel.setBorder(new EmptyBorder(16, 0, 16, 24));
 
         JPanel card = new JPanel();
@@ -395,7 +390,14 @@ public class GameUI extends JFrame implements GameEventListener {
         rightControls.setOpaque(false);
 
         newRoundBtn = new ModernButton("New Round", UITheme.COLOR_PRIMARY_BTN);
-        newRoundBtn.addActionListener(e -> controller.startNewRound());
+        newRoundBtn.addActionListener(e -> {
+            // Before any match exists, New Round starts one with the current settings
+            if (controller.getGameState() == GameState.READY) {
+                handleStartMatch();
+            } else {
+                controller.startNewRound();
+            }
+        });
 
         resetScoresBtn = new ModernButton("Reset Scores", UITheme.COLOR_SECONDARY_BTN);
         resetScoresBtn.addActionListener(e -> handleResetScores());
@@ -414,6 +416,11 @@ public class GameUI extends JFrame implements GameEventListener {
     }
 
     private void handleCellClick(int row, int col) {
+        // No match has been started yet: clicks only count after Start Match
+        if (controller.getGameState() == GameState.READY) {
+            return;
+        }
+
         boolean vsAI = (modeCombo.getSelectedIndex() == 0);
 
         // The selected mode may differ from the running match (e.g. the initial
