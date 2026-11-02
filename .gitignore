@@ -9,3 +9,7 @@ sources.txt
 .settings/
 .project
 .classpath
+
+# Embedded SQLite match database (runtime data)
+data/*.db
+data/*.db-journal

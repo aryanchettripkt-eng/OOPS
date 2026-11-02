@@ -451,7 +451,7 @@ public class GameUI extends JFrame implements GameEventListener {
     private void handleResetScores() {
         int confirm = JOptionPane.showConfirmDialog(
                 this,
-                "Reset scoreboard tallies back to 0-0?\n(Current session scores will be cleared; persistent CSV history remains saved.)",
+                "Reset scoreboard tallies back to 0-0?\n(Current session scores will be cleared; saved match history remains in the database.)",
                 "Confirm Reset Scores",
                 JOptionPane.YES_NO_OPTION,
                 JOptionPane.QUESTION_MESSAGE

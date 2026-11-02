@@ -3,6 +3,7 @@ package com.tictactoe.persistence;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -15,7 +16,7 @@ import java.util.List;
  * - Safe append mode without corrupting existing records
  * - Resilient error handling for missing files, corrupt records, and I/O failures
  */
-public class MatchHistory {
+public class MatchHistory implements MatchStore {
     public static final String DEFAULT_FILE_PATH = "data/match_history.csv";
     public static final String CSV_HEADER = "Timestamp,PlayerX,PlayerO,Winner,WinnerSymbol,Reason,DurationSeconds";
 
@@ -40,6 +41,23 @@ public class MatchHistory {
 
     public Path getFilePath() {
         return filePath;
+    }
+
+    /**
+     * The CSV format has no match grouping, so this returns 0 and records nothing.
+     */
+    @Override
+    public long startMatch(LocalDateTime startedAt, String playerXName, String playerOName,
+                           boolean vsAI, int turnTimeoutSeconds) {
+        return 0L;
+    }
+
+    /**
+     * Appends the round as a CSV row. The match identifier is ignored by the CSV format.
+     */
+    @Override
+    public void recordRound(long matchId, MatchRecord round) throws IOException {
+        appendRecord(round);
     }
 
     /**
@@ -89,6 +107,7 @@ public class MatchHistory {
      * @return unmodifiable list of loaded MatchRecord items, ordered oldest to newest
      * @throws IOException if a fatal read error occurs
      */
+    @Override
     public synchronized List<MatchRecord> loadAllRecords() throws IOException {
         if (!Files.exists(filePath)) {
             return Collections.emptyList();
@@ -132,6 +151,7 @@ public class MatchHistory {
      *
      * @throws IOException if file cannot be deleted
      */
+    @Override
     public synchronized void clearHistory() throws IOException {
         if (Files.exists(filePath)) {
             Files.delete(filePath);
