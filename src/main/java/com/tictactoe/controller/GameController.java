@@ -2,8 +2,8 @@ package com.tictactoe.controller;
 
 import com.tictactoe.exception.InvalidMoveException;
 import com.tictactoe.model.*;
-import com.tictactoe.persistence.MatchHistory;
 import com.tictactoe.persistence.MatchRecord;
+import com.tictactoe.persistence.MatchStore;
 import com.tictactoe.timer.TimerListener;
 import com.tictactoe.timer.TurnTimer;
 
@@ -36,7 +36,7 @@ public class GameController implements TimerListener {
     private final Scoreboard scoreboard;
     private final TurnTimer turnTimer;
     private final ScheduledExecutorService aiExecutor;
-    private final MatchHistory matchHistory;
+    private final MatchStore matchStore;
     private final List<GameEventListener> listeners;
 
     private Player playerX;
@@ -49,6 +49,8 @@ public class GameController implements TimerListener {
     private long currentTurnToken = 0;
     private long roundStartTimeMs = 0;
     private boolean roundCompleted = false;
+    // Identifier of the match currently being recorded in the store (0 when none)
+    private long currentMatchId = 0;
 
     /**
      * Default constructor creating standard board, scoreboard, timer, and null history.
@@ -64,9 +66,9 @@ public class GameController implements TimerListener {
      * @param board        board model
      * @param scoreboard   scoreboard tracker
      * @param turnTimer    turn timer (if null, a default TurnTimer is created)
-     * @param matchHistory match history store (may be null)
+     * @param matchStore   match and round history store (may be null)
      */
-    public GameController(Board board, Scoreboard scoreboard, TurnTimer turnTimer, MatchHistory matchHistory) {
+    public GameController(Board board, Scoreboard scoreboard, TurnTimer turnTimer, MatchStore matchStore) {
         this.board = (board != null) ? board : new Board();
         this.scoreboard = (scoreboard != null) ? scoreboard : new Scoreboard();
         this.turnTimer = (turnTimer != null) ? turnTimer : new TurnTimer(this);
@@ -75,7 +77,7 @@ public class GameController implements TimerListener {
             thread.setDaemon(true);
             return thread;
         });
-        this.matchHistory = matchHistory;
+        this.matchStore = matchStore;
         this.listeners = new CopyOnWriteArrayList<>();
 
         this.playerX = new HumanPlayer("Player X", PlayerSymbol.X);
@@ -129,6 +131,7 @@ public class GameController implements TimerListener {
             this.playerX = new HumanPlayer(sanitizedX, PlayerSymbol.X);
             this.playerO = vsAI ? new AIPlayer(sanitizedO, PlayerSymbol.O) : new HumanPlayer(sanitizedO, PlayerSymbol.O);
             this.turnTimeoutSeconds = timeoutSeconds;
+            this.currentMatchId = openStoredMatch(sanitizedX, sanitizedO, vsAI, timeoutSeconds);
 
             scoreboard.reset();
             notifyScoreboardUpdated();
@@ -314,8 +317,8 @@ public class GameController implements TimerListener {
             scoreboard.recordWin(winner.getSymbol());
         }
 
-        // Persist to match history
-        if (matchHistory != null) {
+        // Persist the round to match history
+        if (matchStore != null) {
             try {
                 MatchRecord record = new MatchRecord(
                         LocalDateTime.now(),
@@ -326,7 +329,7 @@ public class GameController implements TimerListener {
                         reason,
                         durationSeconds
                 );
-                matchHistory.appendRecord(record);
+                matchStore.recordRound(currentMatchId, record);
             } catch (Exception e) {
                 notifyError("Failed to save match history: " + e.getMessage());
             }
@@ -335,6 +338,25 @@ public class GameController implements TimerListener {
         notifyScoreboardUpdated();
         notifyRoundEnded(finalState, reason, winner, winningLine);
         notifyGameStateChanged();
+    }
+
+    /**
+     * Opens a match record in the store and returns its identifier.
+     * Failures are reported to listeners and the match continues unrecorded.
+     * Must be called while holding stateLock.
+     *
+     * @return match identifier, or 0 if no store is configured or opening failed
+     */
+    private long openStoredMatch(String nameX, String nameO, boolean vsAI, int timeoutSeconds) {
+        if (matchStore == null) {
+            return 0L;
+        }
+        try {
+            return matchStore.startMatch(LocalDateTime.now(), nameX, nameO, vsAI, timeoutSeconds);
+        } catch (Exception e) {
+            notifyError("Failed to start match record: " + e.getMessage());
+            return 0L;
+        }
     }
 
     /**
@@ -384,8 +406,8 @@ public class GameController implements TimerListener {
         return turnTimer;
     }
 
-    public MatchHistory getMatchHistory() {
-        return matchHistory;
+    public MatchStore getMatchHistory() {
+        return matchStore;
     }
 
     public Player getPlayerX() {

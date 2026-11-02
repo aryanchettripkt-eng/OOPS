@@ -1,6 +1,6 @@
 package com.tictactoe.ui;
 
-import com.tictactoe.persistence.MatchHistory;
+import com.tictactoe.persistence.MatchStore;
 import com.tictactoe.persistence.MatchRecord;
 
 import javax.swing.*;
@@ -13,17 +13,17 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * Modal dialog displaying persistent match records loaded from CSV.
+ * Modal dialog displaying persisted match records loaded from the match store.
  * Features a high-contrast JTable, refresh capability, and history clearing.
  */
 public class HistoryDialog extends JDialog {
 
-    private final MatchHistory matchHistory;
+    private final MatchStore matchHistory;
     private final DefaultTableModel tableModel;
     private final JTable table;
     private final JLabel statusLabel;
 
-    public HistoryDialog(Frame parent, MatchHistory matchHistory) {
+    public HistoryDialog(Frame parent, MatchStore matchHistory) {
         super(parent, "Match History Records", true);
         this.matchHistory = matchHistory;
 
@@ -45,7 +45,7 @@ public class HistoryDialog extends JDialog {
         titleLabel.setForeground(UITheme.TEXT_PRIMARY);
         headerPanel.add(titleLabel, BorderLayout.WEST);
 
-        statusLabel = new JLabel("Loaded from data/match_history.csv");
+        statusLabel = new JLabel("Loaded from data/tictactoe.db");
         statusLabel.setFont(UITheme.FONT_BODY_BOLD);
         statusLabel.setForeground(UITheme.TEXT_SECONDARY);
         headerPanel.add(statusLabel, BorderLayout.EAST);

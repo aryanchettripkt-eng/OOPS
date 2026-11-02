@@ -4,10 +4,13 @@ import com.tictactoe.controller.GameController;
 import com.tictactoe.model.Board;
 import com.tictactoe.model.Scoreboard;
 import com.tictactoe.persistence.MatchHistory;
+import com.tictactoe.persistence.MatchStore;
+import com.tictactoe.persistence.SqlMatchStore;
 import com.tictactoe.ui.GameUI;
 import com.tictactoe.ui.UITheme;
 
 import javax.swing.*;
+import java.nio.file.Paths;
 
 /**
  * Application entry point for Multithreaded Tic-Tac-Toe.
@@ -40,13 +43,20 @@ public class Main {
         // Initialize core services
         Board board = new Board();
         Scoreboard scoreboard = new Scoreboard();
-        MatchHistory matchHistory = new MatchHistory();
-        GameController controller = new GameController(board, scoreboard, null, matchHistory);
+        MatchStore matchStore = openMatchStore();
+        GameController controller = new GameController(board, scoreboard, null, matchStore);
 
         // Register runtime shutdown hook to ensure background threads stop if JVM exits abruptly
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             System.out.println("JVM shutdown hook triggered: Stopping background threads...");
             controller.shutdown();
+            if (matchStore instanceof SqlMatchStore sqlStore) {
+                try {
+                    sqlStore.close();
+                } catch (Exception e) {
+                    System.err.println("Could not close match database: " + e.getMessage());
+                }
+            }
         }, "Shutdown-Hook-Thread"));
 
         // Launch GUI on Event Dispatch Thread (EDT)
@@ -59,5 +69,24 @@ public class Main {
                 e.printStackTrace();
             }
         });
+    }
+
+    /**
+     * Opens the SQLite match database and imports any legacy CSV history once.
+     * Falls back to the CSV store if the database cannot be opened, so the game still runs.
+     */
+    private static MatchStore openMatchStore() {
+        MatchHistory legacyCsv = new MatchHistory();
+        try {
+            SqlMatchStore sqlStore = new SqlMatchStore(Paths.get(SqlMatchStore.DEFAULT_DB_PATH));
+            int imported = sqlStore.importLegacyCsv(legacyCsv);
+            if (imported > 0) {
+                System.out.println("Imported " + imported + " legacy CSV rounds into " + sqlStore.getDbPath());
+            }
+            return sqlStore;
+        } catch (Exception e) {
+            System.err.println("Match database unavailable, using CSV history instead: " + e.getMessage());
+            return legacyCsv;
+        }
     }
 }
