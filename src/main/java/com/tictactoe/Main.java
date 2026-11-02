@@ -3,6 +3,7 @@ package com.tictactoe;
 import com.tictactoe.controller.GameController;
 import com.tictactoe.model.Board;
 import com.tictactoe.model.Scoreboard;
+import com.tictactoe.persistence.AppPaths;
 import com.tictactoe.persistence.MatchHistory;
 import com.tictactoe.persistence.MatchStore;
 import com.tictactoe.persistence.SqlMatchStore;
@@ -10,7 +11,6 @@ import com.tictactoe.ui.GameUI;
 import com.tictactoe.ui.UITheme;
 
 import javax.swing.*;
-import java.nio.file.Paths;
 
 /**
  * Application entry point for Multithreaded Tic-Tac-Toe.
@@ -78,7 +78,7 @@ public class Main {
     private static MatchStore openMatchStore() {
         MatchHistory legacyCsv = new MatchHistory();
         try {
-            SqlMatchStore sqlStore = new SqlMatchStore(Paths.get(SqlMatchStore.DEFAULT_DB_PATH));
+            SqlMatchStore sqlStore = new SqlMatchStore(AppPaths.dataFile(SqlMatchStore.DEFAULT_DB_NAME));
             int imported = sqlStore.importLegacyCsv(legacyCsv);
             if (imported > 0) {
                 System.out.println("Imported " + imported + " legacy CSV rounds into " + sqlStore.getDbPath());

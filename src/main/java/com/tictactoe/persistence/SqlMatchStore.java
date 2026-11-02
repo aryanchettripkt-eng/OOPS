@@ -6,7 +6,6 @@ import com.tictactoe.model.PlayerSymbol;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -33,7 +32,7 @@ import java.util.List;
  */
 public final class SqlMatchStore implements MatchStore, AutoCloseable {
 
-    public static final String DEFAULT_DB_PATH = "data/tictactoe.db";
+    public static final String DEFAULT_DB_NAME = "tictactoe.db";
     static final String CSV_IMPORT_FLAG = "csv_imported";
 
     private static final String[] SCHEMA = {
@@ -94,7 +93,7 @@ public final class SqlMatchStore implements MatchStore, AutoCloseable {
      * @throws IOException if the file cannot be opened or the schema cannot be created
      */
     public SqlMatchStore(Path dbPath) throws IOException {
-        this.dbPath = (dbPath != null) ? dbPath : Paths.get(DEFAULT_DB_PATH);
+        this.dbPath = (dbPath != null) ? dbPath : AppPaths.dataFile(DEFAULT_DB_NAME);
         Path parent = this.dbPath.toAbsolutePath().getParent();
         if (parent != null) {
             Files.createDirectories(parent);

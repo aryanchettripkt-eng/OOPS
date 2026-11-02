@@ -194,19 +194,16 @@ public class GameController implements TimerListener {
                 return false;
             }
 
-            // Immediately stop/invalidate the active timer for this turn
-            turnTimer.stop();
-
             try {
                 board.makeMove(row, col, currentPlayer.getSymbol());
             } catch (InvalidMoveException e) {
-                // If move was invalid, restart timer with remaining seconds and inform user
+                // Rejected click (e.g. occupied cell): the running countdown is left untouched
                 notifyError(e.getMessage());
-                turnTimer.start(currentTurnToken, Math.max(1, turnTimer.getSecondsRemaining()));
                 return false;
             }
 
-            // Move was successful
+            // Move was accepted: stop/invalidate the active timer for this turn
+            turnTimer.stop();
             notifyMoveMade(row, col, currentPlayer.getSymbol());
 
             // 1. Check Win

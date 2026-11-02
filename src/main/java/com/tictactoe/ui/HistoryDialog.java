@@ -45,7 +45,7 @@ public class HistoryDialog extends JDialog {
         titleLabel.setForeground(UITheme.TEXT_PRIMARY);
         headerPanel.add(titleLabel, BorderLayout.WEST);
 
-        statusLabel = new JLabel("Loaded from data/tictactoe.db");
+        statusLabel = new JLabel("Data folder: " + com.tictactoe.persistence.AppPaths.dataDir());
         statusLabel.setFont(UITheme.FONT_BODY_BOLD);
         statusLabel.setForeground(UITheme.TEXT_SECONDARY);
         headerPanel.add(statusLabel, BorderLayout.EAST);

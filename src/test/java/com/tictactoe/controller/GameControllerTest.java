@@ -259,4 +259,24 @@ class GameControllerTest {
         // Turn must still belong to Bob (O)
         assertEquals(controller.getPlayerO(), controller.getCurrentPlayer());
     }
+
+    @Test
+    @DisplayName("Starting a 2-player match after a vs-AI match gives both players human control")
+    void testSwitchingFromVsAiToTwoPlayersRemovesComputerOpponent() {
+        controller.startNewMatch("Alice", "Computer (AI)", 10, true);
+        assertTrue(controller.isVsAI());
+
+        controller.startNewMatch("Alice", "Bob", 10, false);
+
+        assertFalse(controller.isVsAI(), "2-player match must not contain an AI player");
+        assertFalse(controller.getPlayerO() instanceof com.tictactoe.model.AIPlayer);
+        assertEquals(GameState.PLAYING, controller.getGameState());
+        assertEquals(controller.getPlayerX(), controller.getCurrentPlayer());
+
+        // Player O must be able to move on their own turn, and the computer must not take it
+        assertTrue(controller.handleMove(0, 0));
+        assertEquals(controller.getPlayerO(), controller.getCurrentPlayer());
+        assertTrue(controller.handleMove(1, 1));
+        assertEquals(controller.getPlayerX(), controller.getCurrentPlayer());
+    }
 }

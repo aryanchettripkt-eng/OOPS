@@ -7,6 +7,11 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Manages background turn countdowns and timeout dispatching.
  * Demonstrates Java concurrency using ScheduledExecutorService, ThreadFactory,
  * daemon threads, and atomic state invalidation with generation tokens.
+ *
+ * <p>Locking rule: the timer's monitor is only held to update timer state. The listener
+ * is always called after that monitor is released. The listener (GameController) takes
+ * its own lock, and calling it while holding this monitor would create a lock cycle
+ * with the controller's move handling.
  */
 public class TurnTimer {
     private final ScheduledExecutorService scheduler;
@@ -51,64 +56,68 @@ public class TurnTimer {
      * @param turnToken      unique generation token for this turn
      * @param timeoutSeconds number of seconds before timeout
      */
-    public synchronized void start(long turnToken, int timeoutSeconds) {
-        stop(); // Cancel existing task if any
-
+    public void start(long turnToken, int timeoutSeconds) {
         if (timeoutSeconds <= 0) {
             throw new IllegalArgumentException("Timeout seconds must be greater than zero");
         }
 
-        this.activeTurnToken = turnToken;
-        this.secondsRemaining.set(timeoutSeconds);
+        synchronized (this) {
+            cancelLocked(); // Cancel existing task if any
+            this.activeTurnToken = turnToken;
+            this.secondsRemaining.set(timeoutSeconds);
+            this.currentTask = scheduler.scheduleAtFixedRate(() -> onTick(turnToken), 1, 1, TimeUnit.SECONDS);
+        }
 
-        // Immediately notify listener of starting seconds
+        // Notify listener of starting seconds, outside the monitor
         if (listener != null) {
             listener.onTimerTick(timeoutSeconds);
         }
+    }
 
-        // Schedule periodic 1-second countdown task
-        this.currentTask = scheduler.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    int remaining;
-                    synchronized (TurnTimer.this) {
-                        // Check if this task is still active for the intended turn
-                        if (activeTurnToken != turnToken || Thread.currentThread().isInterrupted()) {
-                            return;
-                        }
-                        remaining = secondsRemaining.decrementAndGet();
-                    }
-
-                    if (remaining > 0) {
-                        if (listener != null) {
-                            listener.onTimerTick(remaining);
-                        }
-                    } else {
-                        // Timeout reached!
-                        synchronized (TurnTimer.this) {
-                            if (activeTurnToken == turnToken) {
-                                stop(); // Stop task
-                                if (listener != null) {
-                                    listener.onTimeout(turnToken);
-                                }
-                            }
-                        }
-                    }
-                } catch (Exception e) {
-                    // Prevent unhandled exceptions from terminating scheduler
-                    System.err.println("Exception in TurnTimer task: " + e.getMessage());
+    /**
+     * Runs once per second for the given turn. Timer state is updated under the monitor,
+     * and the listener is called after the monitor is released.
+     */
+    private void onTick(long turnToken) {
+        try {
+            int remaining;
+            synchronized (this) {
+                // Check if this task is still active for the intended turn
+                if (activeTurnToken != turnToken || Thread.currentThread().isInterrupted()) {
+                    return;
+                }
+                remaining = secondsRemaining.decrementAndGet();
+                if (remaining <= 0) {
+                    cancelLocked(); // Timeout: stop this countdown
                 }
             }
-        }, 1, 1, TimeUnit.SECONDS);
+
+            if (listener == null) {
+                return;
+            }
+            if (remaining > 0) {
+                listener.onTimerTick(remaining);
+            } else {
+                listener.onTimeout(turnToken);
+            }
+        } catch (Exception e) {
+            // Prevent unhandled exceptions from terminating scheduler
+            System.err.println("Exception in TurnTimer task: " + e.getMessage());
+        }
     }
 
     /**
      * Atomically stops and cancels the current countdown task and invalidates the token.
      */
     public synchronized void stop() {
+        cancelLocked();
+    }
+
+    /** Caller must hold this monitor. */
+    private void cancelLocked() {
         if (currentTask != null) {
-            currentTask.cancel(true);
+            // Do not interrupt: stop() can run inside the tick task itself
+            currentTask.cancel(false);
             currentTask = null;
         }
         this.activeTurnToken = -1;
